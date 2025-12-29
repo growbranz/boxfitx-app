@@ -1,26 +1,74 @@
 @import "tailwindcss";
 
+/* BOXFITX CYBER THEME */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+    --background: #050505;
+    /* TRUE BLACK */
+    --foreground: #e5e7eb;
+    /* soft white */
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+
+/* Dark mode enforced */
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+     :root {
+        --background: #050505;
+        --foreground: #e5e7eb;
+    }
+}
+
+
+/* BOXFITX GRID OVERLAY */
+
+body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background-image: linear-gradient(rgba(0, 255, 106, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 255, 106, 0.03) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+    z-index: 0;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+    background: var(--background);
+    color: var(--foreground);
+    font-family: Inter, system-ui, sans-serif;
+}
+
+
+/* INPUTS */
+
+.input-ui {
+    width: 100%;
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    border: 1px solid #00ff6a66;
+    background-color: #000;
+    color: #00ff6a;
+    outline: none;
+}
+
+.input-ui:focus {
+    border-color: #00ff6a;
+    box-shadow: 0 0 0 2px #00ff6a33;
+}
+
+
+/* Fix select dropdown colors for dark theme */
+
+.input-boxfitx option {
+    background-color: #020403;
+    /* BOXFITX dark */
+    color: #ffffff;
+}
+
+
+/* Optional: hover effect (supported in some browsers) */
+
+.input-boxfitx option:hover {
+    background-color: #00ff6a;
+    color: #000000;
 }
