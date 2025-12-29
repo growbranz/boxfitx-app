@@ -214,7 +214,6 @@ export default function MemberProfilePage() {
           />
         )}
       </Section>
-
       {/* ---------- MEMBERSHIP ---------- */}
       <Section title="Membership Details">
         <Info label="Plan Type" value={member.membership?.planType || "None"} />
@@ -240,7 +239,6 @@ export default function MemberProfilePage() {
         />
         <Info label="Status" value={member.status} />
       </Section>
-
       {/* ---------- ACTIONS ---------- */}
       <div className="flex justify-end gap-4">
         <button
