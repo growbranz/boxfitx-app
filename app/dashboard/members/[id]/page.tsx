@@ -239,6 +239,33 @@ export default function MemberProfilePage() {
         />
         <Info label="Status" value={member.status} />
       </Section>
+      {/* ---------- EMAIL REMINDER STATUS ---------- */}
+      <Section title="Email Reminder Status">
+        <Info
+          label="7 Day Reminder"
+          value={member.reminders?.day7Sent ? "Sent ✅" : "Pending ⏳"}
+        />
+
+        <Info
+          label="3 Day Reminder"
+          value={member.reminders?.day3Sent ? "Sent ✅" : "Pending ⏳"}
+        />
+
+        <Info
+          label="1 Day Reminder"
+          value={member.reminders?.day1Sent ? "Sent ✅" : "Pending ⏳"}
+        />
+
+        <Info
+          label="Last Email Sent"
+          value={
+            member.reminders?.lastReminderSentAt
+              ? new Date(member.reminders.lastReminderSentAt).toLocaleString()
+              : "—"
+          }
+        />
+      </Section>
+
       {/* ---------- ACTIONS ---------- */}
       <div className="flex justify-end gap-4">
         <button
