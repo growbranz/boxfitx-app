@@ -3,17 +3,26 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
+const SPECIALITIES = [
+  { label: "General Fitness", value: "general_fitness" },
+  { label: "Strength Training", value: "strength_training" },
+  { label: "Weight Loss", value: "weight_loss" },
+  { label: "Boxing", value: "boxing" },
+  { label: "Crossfit", value: "crossfit" },
+  { label: "Yoga", value: "yoga" },
+];
+
 export default function CreateTrainerPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
   const [form, setForm] = useState({
     fullName: "",
-    speciality: "",
+    speciality: "general_fitness",
     phone: "",
   });
 
-  const submit = async (e: any) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
@@ -30,6 +39,8 @@ export default function CreateTrainerPage() {
       });
 
       router.push("/dashboard/trainers");
+    } catch (err) {
+      alert("Failed to create trainer");
     } finally {
       setLoading(false);
     }
@@ -48,11 +59,10 @@ export default function CreateTrainerPage() {
         </p>
       </div>
 
-      {/* FORM CARD */}
+      {/* FORM */}
       <form
         onSubmit={submit}
         className="
-          relative
           bg-black/70 backdrop-blur
           border border-[#00FF6A]/40
           shadow-[0_0_60px_#00FF6A15]
@@ -68,10 +78,11 @@ export default function CreateTrainerPage() {
           onChange={(v) => setForm({ ...form, fullName: v })}
         />
 
-        {/* SPECIALITY */}
-        <Field
+        {/* SPECIALITY SELECT */}
+        <SelectField
           label="SPECIALITY"
-          placeholder="Strength training, Yoga, Boxing..."
+          value={form.speciality}
+          options={SPECIALITIES}
           onChange={(v) => setForm({ ...form, speciality: v })}
         />
 
@@ -118,7 +129,7 @@ export default function CreateTrainerPage() {
   );
 }
 
-/* ---------- INPUT FIELD ---------- */
+/* ---------- INPUT ---------- */
 
 function Field({
   label,
@@ -142,10 +153,48 @@ function Field({
           border border-[#00FF6A]/30
           focus:outline-none
           focus:ring-2 focus:ring-[#00FF6A]/40
-          transition
         "
         onChange={(e) => onChange(e.target.value)}
       />
+    </div>
+  );
+}
+
+/* ---------- SELECT ---------- */
+
+function SelectField({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: { label: string; value: string }[];
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div>
+      <label className="block mb-1 text-xs tracking-widest text-gray-400">
+        {label}
+      </label>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="
+          w-full p-4 rounded-xl
+          bg-black/80 text-white
+          border border-[#00FF6A]/30
+          focus:outline-none
+          focus:ring-2 focus:ring-[#00FF6A]/40
+        "
+      >
+        {options.map((opt) => (
+          <option key={opt.value} value={opt.value}>
+            {opt.label}
+          </option>
+        ))}
+      </select>
     </div>
   );
 }

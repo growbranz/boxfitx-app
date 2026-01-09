@@ -35,9 +35,9 @@ export default function MembersPage() {
 
   const exportExcel = async () => {
     const token = localStorage.getItem("token");
-
+    const params = new URLSearchParams(filters).toString();
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/members/export/excel`,
+      `${process.env.NEXT_PUBLIC_API_URL}/api/members/export/excel?${params}`,
       {
         headers: { Authorization: `Bearer ${token}` },
       }

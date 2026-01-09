@@ -4,23 +4,17 @@
 
 :root {
     --background: #050505;
-    /* TRUE BLACK */
     --foreground: #e5e7eb;
-    /* soft white */
+}
+
+body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: Inter, system-ui, sans-serif;
 }
 
 
-/* Dark mode enforced */
-
-@media (prefers-color-scheme: dark) {
-     :root {
-        --background: #050505;
-        --foreground: #e5e7eb;
-    }
-}
-
-
-/* BOXFITX GRID OVERLAY */
+/* GRID OVERLAY */
 
 body::before {
     content: "";
@@ -32,43 +26,40 @@ body::before {
     z-index: 0;
 }
 
-body {
-    background: var(--background);
-    color: var(--foreground);
-    font-family: Inter, system-ui, sans-serif;
-}
 
+/* FILTER INPUT (USED EVERYWHERE) */
 
-/* INPUTS */
-
-.input-ui {
+.filter-input {
     width: 100%;
     padding: 0.75rem;
-    border-radius: 0.5rem;
-    border: 1px solid #00ff6a66;
-    background-color: #000;
-    color: #00ff6a;
+    border-radius: 0.75rem;
+    border: 1px solid #00ff6a55;
+    background-color: #020403;
+    color: #ffffff;
     outline: none;
+    appearance: none;
+    cursor: pointer;
 }
 
-.input-ui:focus {
+.filter-input:focus {
     border-color: #00ff6a;
     box-shadow: 0 0 0 2px #00ff6a33;
 }
 
 
-/* Fix select dropdown colors for dark theme */
+/* FIX DROPDOWN OPTIONS */
 
-.input-boxfitx option {
+.filter-input option {
     background-color: #020403;
-    /* BOXFITX dark */
     color: #ffffff;
 }
 
 
-/* Optional: hover effect (supported in some browsers) */
+/* DISABLED SELECT FIX */
 
-.input-boxfitx option:hover {
-    background-color: #00ff6a;
-    color: #000000;
+.filter-input:disabled {
+    background-color: #020403;
+    color: #888;
+    cursor: not-allowed;
+    border-color: #00ff6a22;
 }

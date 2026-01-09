@@ -1,28 +1,42 @@
 "use client";
 
-export default function MemberFilters({ onChange }: any) {
+const YEARS = (() => {
+  const currentYear = new Date().getFullYear();
+  return Array.from({ length: 6 }, (_, i) => currentYear - i);
+})();
+
+const MONTHS = [
+  { value: 1, label: "January" },
+  { value: 2, label: "February" },
+  { value: 3, label: "March" },
+  { value: 4, label: "April" },
+  { value: 5, label: "May" },
+  { value: 6, label: "June" },
+  { value: 7, label: "July" },
+  { value: 8, label: "August" },
+  { value: 9, label: "September" },
+  { value: 10, label: "October" },
+  { value: 11, label: "November" },
+  { value: 12, label: "December" },
+];
+
+export default function MemberFilters({ onChange, filters }: any) {
+  const yearSelected = Boolean(filters?.year);
+
   return (
     <div
       className="
-        mb-8 p-5 rounded-2xl
+        mb-8 p-6 rounded-2xl
         bg-black/70 backdrop-blur
         border border-[#00FF6A]/30
         shadow-[0_0_40px_#00FF6A11]
       "
     >
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
         {/* SEARCH */}
         <input
           placeholder="Search name, phone or email"
-          className="
-            p-3 rounded-lg
-            bg-black/60 border border-[#00FF6A]/30
-            text-white placeholder-gray-500
-            focus:outline-none
-            focus:ring-2 focus:ring-[#00FF6A]/40
-            focus:border-[#00FF6A]
-            transition
-          "
+          className="filter-input"
           onChange={(e) =>
             onChange((p: any) => ({ ...p, search: e.target.value, page: 1 }))
           }
@@ -30,15 +44,7 @@ export default function MemberFilters({ onChange }: any) {
 
         {/* STATUS */}
         <select
-          className="
-            p-3 rounded-lg
-            bg-black/60 border border-[#00FF6A]/30
-            text-white
-            focus:outline-none
-            focus:ring-2 focus:ring-[#00FF6A]/40
-            focus:border-[#00FF6A]
-            transition
-          "
+          className="filter-input"
           onChange={(e) =>
             onChange((p: any) => ({ ...p, status: e.target.value, page: 1 }))
           }
@@ -51,15 +57,7 @@ export default function MemberFilters({ onChange }: any) {
 
         {/* PLAN */}
         <select
-          className="
-            p-3 rounded-lg
-            bg-black/60 border border-[#00FF6A]/30
-            text-white
-            focus:outline-none
-            focus:ring-2 focus:ring-[#00FF6A]/40
-            focus:border-[#00FF6A]
-            transition
-          "
+          className="filter-input"
           onChange={(e) =>
             onChange((p: any) => ({ ...p, planType: e.target.value, page: 1 }))
           }
@@ -73,15 +71,7 @@ export default function MemberFilters({ onChange }: any) {
 
         {/* GENDER */}
         <select
-          className="
-            p-3 rounded-lg
-            bg-black/60 border border-[#00FF6A]/30
-            text-white
-            focus:outline-none
-            focus:ring-2 focus:ring-[#00FF6A]/40
-            focus:border-[#00FF6A]
-            transition
-          "
+          className="filter-input"
           onChange={(e) =>
             onChange((p: any) => ({ ...p, gender: e.target.value, page: 1 }))
           }
@@ -89,6 +79,64 @@ export default function MemberFilters({ onChange }: any) {
           <option value="">All Genders</option>
           <option value="Male">Male</option>
           <option value="Female">Female</option>
+        </select>
+
+        {/* YEAR */}
+        <select
+          className="filter-input"
+          onChange={(e) =>
+            onChange((p: any) => {
+              const value = e.target.value;
+              const next = { ...p, page: 1 };
+
+              if (value) {
+                next.year = Number(value);
+                delete next.month; // ✅ reset month properly
+              } else {
+                delete next.year;
+                delete next.month;
+              }
+
+              return next;
+            })
+          }
+        >
+          <option value="">All Years</option>
+          {YEARS.map((y) => (
+            <option key={y} value={y}>
+              {y}
+            </option>
+          ))}
+        </select>
+
+        {/* MONTH */}
+        <select
+          autoFocus={yearSelected}
+          // disabled={!yearSelected}
+          className={`filter-input ${
+            !yearSelected ? "opacity-40 cursor-not-allowed" : "cursor-pointer"
+          }`}
+          onChange={(e) =>
+            onChange((p: any) => {
+              const value = e.target.value;
+              const next = { ...p, page: 1 };
+
+              if (value) {
+                next.month = Number(value);
+              } else {
+                delete next.month; // ✅ CRITICAL FIX
+              }
+
+              return next;
+            })
+          }
+        >
+          <option value="">All Months</option>
+          {MONTHS.map((m) => (
+            <option key={m.value} value={m.value}>
+              {m.label}
+            </option>
+          ))}
         </select>
       </div>
     </div>
