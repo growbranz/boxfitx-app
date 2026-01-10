@@ -44,7 +44,7 @@ export default function SignInPage() {
         if (payload.role === "admin") {
           router.replace("/dashboard");
         } else {
-          router.replace("/user/profile");
+          router.replace("/user/dashboard");
         }
       }, 800);
     } catch {

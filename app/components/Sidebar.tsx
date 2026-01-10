@@ -54,6 +54,7 @@ export default function Sidebar() {
   ];
 
   const memberMenu = [
+    { name: "Dashboard", href: "/user/dashboard", icon: LayoutDashboard },
     { name: "My Profile", href: "/user/profile", icon: User },
     { name: "My Attendance", href: "/user/attendance", icon: CalendarCheck },
     { name: "My Membership", href: "/user/membership", icon: ClipboardList },
