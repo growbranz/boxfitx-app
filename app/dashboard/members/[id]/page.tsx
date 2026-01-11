@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-
+import { Eye, EyeOff } from "lucide-react";
 export default function MemberProfilePage() {
   const { id } = useParams();
   const router = useRouter();
@@ -16,7 +16,7 @@ export default function MemberProfilePage() {
   const [loginCreated, setLoginCreated] = useState(false);
   const [editForm, setEditForm] = useState<any>(null);
   const [showEditModal, setShowEditModal] = useState(false);
-
+  const [showPassword, setShowPassword] = useState(false);
   /* ---------- FETCH MEMBER ---------- */
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -358,13 +358,24 @@ export default function MemberProfilePage() {
               CREATE MEMBER LOGIN
             </h2>
 
-            <input
-              type="password"
-              placeholder="Enter password"
-              className="input-boxfitx w-full mb-3"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
+            {/* PASSWORD FIELD WITH EYE */}
+            <div className="relative mb-3">
+              <input
+                type={showPassword ? "text" : "password"}
+                placeholder="Enter password"
+                className="input-boxfitx w-full pr-12"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#00FF6A] transition"
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
 
             {message && (
               <p className="text-sm text-yellow-400 mb-2">{message}</p>

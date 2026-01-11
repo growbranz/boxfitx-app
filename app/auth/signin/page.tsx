@@ -5,12 +5,13 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import toast from "react-hot-toast";
-
+import { Eye, EyeOff } from "lucide-react";
 export default function SignInPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -118,17 +119,27 @@ export default function SignInPage() {
             />
           </div>
 
-          <div>
+          <div className="relative">
             <label className="text-xs text-gray-400">Password</label>
+
             <input
-              type="password"
+              type={showPassword ? "text" : "password"}
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="mt-1 w-full p-3 rounded-lg bg-black/70
-              border border-green-500/40 focus:outline-none
-              focus:ring-2 focus:ring-green-400 transition"
+              className="mt-1 w-full p-3 pr-12 rounded-lg bg-black/70
+        border border-green-500/40 focus:outline-none
+        focus:ring-2 focus:ring-green-400 transition"
             />
+
+            {/* EYE ICON */}
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-9 text-gray-400 hover:text-green-400 transition"
+            >
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
           </div>
 
           <motion.button
@@ -145,7 +156,7 @@ export default function SignInPage() {
           </motion.button>
         </form>
 
-        <div className="mt-6 text-center text-sm text-gray-400">
+        {/* <div className="mt-6 text-center text-sm text-gray-400">
           Don’t have an account?{" "}
           <span
             onClick={() => router.push("/auth/signup")}
@@ -153,7 +164,7 @@ export default function SignInPage() {
           >
             Create Admin
           </span>
-        </div>
+        </div> */}
       </motion.div>
     </div>
   );
