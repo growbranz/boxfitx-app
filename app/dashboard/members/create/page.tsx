@@ -1,14 +1,41 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
 import { authFetch } from "@/app/lib/authFetch";
+
+/* ---------- TYPES ---------- */
+
+type MemberForm = {
+  fullName: string;
+  email: string;
+  number: string;
+  dob: string;
+  gender: string;
+  address: string;
+  cardId: string;
+
+  heightCm: string;
+  weightCm: string;
+  fitnessGoal: string;
+
+  medicalConditions: boolean;
+  medicalConditionsDetails: string;
+
+  onMedication: boolean;
+  medicationDetails: string;
+
+  previousInjuries: boolean;
+  previousInjuriesDetails: string;
+};
 
 export default function CreateMemberPage() {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
+  const submitLock = useRef(false);
 
-  const [form, setForm] = useState<any>({
+  const [loading, setLoading] = useState(false);
+  const [form, setForm] = useState<MemberForm>({
     fullName: "",
     email: "",
     number: "",
@@ -31,11 +58,34 @@ export default function CreateMemberPage() {
     previousInjuriesDetails: "",
   });
 
-  const submit = async (e: any) => {
+  /* ---------- UPDATE HELPERS ---------- */
+
+  const update = useCallback(
+    <K extends keyof MemberForm>(key: K, value: MemberForm[K]) => {
+      setForm((p) => ({ ...p, [key]: value }));
+    },
+    []
+  );
+
+  /* ---------- SUBMIT ---------- */
+
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (submitLock.current) return; // 🚫 prevent double submit
+    submitLock.current = true;
+
     setLoading(true);
+    const toastId = toast.loading("Creating member…");
 
     try {
+      // 🧠 Lightweight duplicate submit guard (session-level)
+      const fingerprint = `${form.fullName}_${form.number}_${form.email}`;
+      if (sessionStorage.getItem(fingerprint)) {
+        toast.error("This member was just submitted", { id: toastId });
+        return;
+      }
+
       const res = await authFetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/members`,
         {
@@ -44,15 +94,21 @@ export default function CreateMemberPage() {
         }
       );
 
-      if (!res.ok) throw new Error("Failed");
+      if (!res.ok) throw new Error();
+
+      sessionStorage.setItem(fingerprint, "1"); // cache submit
+      toast.success("Member created successfully", { id: toastId });
 
       router.push("/dashboard/members");
     } catch {
-      alert("Member creation failed");
+      toast.error("Member creation failed", { id: toastId });
     } finally {
+      submitLock.current = false;
       setLoading(false);
     }
   };
+
+  /* ---------- UI ---------- */
 
   return (
     <div className="max-w-5xl mx-auto px-4 text-white">
@@ -81,44 +137,44 @@ export default function CreateMemberPage() {
         <Input
           label="Full Name"
           required
-          onChange={(v: any) => setForm({ ...form, fullName: v })}
+          onChange={(v: any) => update("fullName", v)}
         />
         <Input
           label="Email Address"
           type="email"
           required
-          onChange={(v: any) => setForm({ ...form, email: v })}
+          onChange={(v: any) => update("email", v)}
         />
         <Input
           label="Phone Number"
-          onChange={(v: any) => setForm({ ...form, number: v })}
+          onChange={(v: any) => update("number", v)}
         />
         <Input
           label="Date of Birth"
           type="date"
-          onChange={(v: any) => setForm({ ...form, dob: v })}
+          onChange={(v: any) => update("dob", v)}
         />
 
         <Select
           label="Gender"
           options={["Male", "Female"]}
-          onChange={(v: any) => setForm({ ...form, gender: v })}
+          onChange={(v: any) => update("gender", v)}
         />
 
         <Input
           label="Card ID (Biometric)"
-          onChange={(v: any) => setForm({ ...form, cardId: v })}
+          onChange={(v: any) => update("cardId", v)}
         />
 
         <Input
           label="Height (cm)"
           type="number"
-          onChange={(v: any) => setForm({ ...form, heightCm: v })}
+          onChange={(v: any) => update("heightCm", v)}
         />
         <Input
           label="Weight (kg)"
           type="number"
-          onChange={(v: any) => setForm({ ...form, weightCm: v })}
+          onChange={(v: any) => update("weightCm", v)}
         />
 
         <Select
@@ -131,68 +187,69 @@ export default function CreateMemberPage() {
             "boxing_combat",
             "others",
           ]}
-          onChange={(v: any) => setForm({ ...form, fitnessGoal: v })}
+          onChange={(v: any) => update("fitnessGoal", v)}
         />
 
-        {/* ADDRESS */}
         <Textarea
           label="Address"
           rows={3}
-          onChange={(v: any) => setForm({ ...form, address: v })}
+          onChange={(v: any) => update("address", v)}
         />
 
-        {/* MEDICAL */}
         <Toggle
           label="Medical Conditions"
           checked={form.medicalConditions}
-          onChange={(v: boolean) =>
-            setForm({
-              ...form,
+          onChange={(v: any) =>
+            setForm((p) => ({
+              ...p,
               medicalConditions: v,
               medicalConditionsDetails: "",
-            })
+            }))
           }
         />
+
         {form.medicalConditions && (
           <Textarea
             label="Medical Condition Details"
-            onChange={(v: any) =>
-              setForm({ ...form, medicalConditionsDetails: v })
-            }
+            onChange={(v: any) => update("medicalConditionsDetails", v)}
           />
         )}
 
         <Toggle
           label="On Medication"
           checked={form.onMedication}
-          onChange={(v: boolean) =>
-            setForm({ ...form, onMedication: v, medicationDetails: "" })
+          onChange={(v: any) =>
+            setForm((p) => ({
+              ...p,
+              onMedication: v,
+              medicationDetails: "",
+            }))
           }
         />
+
         {form.onMedication && (
           <Textarea
             label="Medication Details"
-            onChange={(v: any) => setForm({ ...form, medicationDetails: v })}
+            onChange={(v: any) => update("medicationDetails", v)}
           />
         )}
 
         <Toggle
           label="Previous Injuries"
           checked={form.previousInjuries}
-          onChange={(v: boolean) =>
-            setForm({
-              ...form,
+          onChange={(v: any) =>
+            setForm((p) => ({
+              ...p,
               previousInjuries: v,
               previousInjuriesDetails: "",
-            })
+            }))
           }
         />
+
         {form.previousInjuries && (
           <Textarea
             label="Injury Details"
-            onChange={(v: any) =>
-              setForm({ ...form, previousInjuriesDetails: v })
-            }
+            onChange={(v: any) => update("previousInjuriesDetails", v)}
           />
         )}
 
@@ -220,7 +277,7 @@ export default function CreateMemberPage() {
   );
 }
 
-/* ---------- REUSABLE ---------- */
+/* ---------- REUSABLE (UNCHANGED UI) ---------- */
 
 function Input({ label, type = "text", required, onChange }: any) {
   return (

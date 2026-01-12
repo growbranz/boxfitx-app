@@ -1,5 +1,9 @@
 "use client";
 
+import { Dispatch, SetStateAction, useEffect, useRef, useState } from "react";
+
+/* ---------- CONSTANTS ---------- */
+
 const YEARS = (() => {
   const currentYear = new Date().getFullYear();
   return Array.from({ length: 6 }, (_, i) => currentYear - i);
@@ -20,33 +24,81 @@ const MONTHS = [
   { value: 12, label: "December" },
 ];
 
-export default function MemberFilters({ onChange, filters }: any) {
-  const yearSelected = Boolean(filters?.year);
+export type Filters = {
+  page: number;
+  search?: string;
+  status?: string;
+  planType?: string;
+  gender?: string;
+  year?: number;
+  month?: number;
+};
 
+type Props = {
+  onChange: Dispatch<SetStateAction<Filters>>;
+  filters?: Filters;
+};
+
+export default function MemberFilters({ onChange, filters }: Props) {
+  const [local, setLocal] = useState<Filters>(filters ?? { page: 1 });
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+
+  const yearSelected = Boolean(local.year);
+
+  /* ---------- DEBOUNCE ---------- */
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+
+    debounceRef.current = setTimeout(() => {
+      onChange((prev) => ({
+        ...prev,
+        ...local,
+      }));
+    }, 400);
+
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [local, onChange]);
+
+  /* ---------- HELPERS ---------- */
+  const update = (patch: Partial<Filters>) => {
+    setLocal((prev) => ({
+      ...prev,
+      ...patch,
+      page: 1,
+    }));
+  };
+
+  const reset = (key: keyof Filters) => {
+    setLocal((prev) => {
+      const next = { ...prev };
+      delete next[key];
+      next.page = 1;
+      return next;
+    });
+  };
+
+  /* ---------- UI ---------- */
   return (
-    <div
-      className="
-        mb-8 p-6 rounded-2xl
-        bg-black/70 backdrop-blur
-        border border-[#00FF6A]/30
-        shadow-[0_0_40px_#00FF6A11]
-      "
-    >
+    <div className="mb-8 p-6 rounded-2xl bg-black/70 backdrop-blur border border-[#00FF6A]/30">
       <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
         {/* SEARCH */}
         <input
-          placeholder="Search name, phone or email"
           className="filter-input"
-          onChange={(e) =>
-            onChange((p: any) => ({ ...p, search: e.target.value, page: 1 }))
-          }
+          placeholder="Search name, phone or email"
+          value={local.search ?? ""}
+          onChange={(e) => update({ search: e.target.value })}
         />
 
         {/* STATUS */}
         <select
           className="filter-input"
+          value={local.status ?? ""}
           onChange={(e) =>
-            onChange((p: any) => ({ ...p, status: e.target.value, page: 1 }))
+            e.target.value
+              ? update({ status: e.target.value })
+              : reset("status")
           }
         >
           <option value="">All Status</option>
@@ -58,8 +110,11 @@ export default function MemberFilters({ onChange, filters }: any) {
         {/* PLAN */}
         <select
           className="filter-input"
+          value={local.planType ?? ""}
           onChange={(e) =>
-            onChange((p: any) => ({ ...p, planType: e.target.value, page: 1 }))
+            e.target.value
+              ? update({ planType: e.target.value })
+              : reset("planType")
           }
         >
           <option value="">All Plans</option>
@@ -72,8 +127,11 @@ export default function MemberFilters({ onChange, filters }: any) {
         {/* GENDER */}
         <select
           className="filter-input"
+          value={local.gender ?? ""}
           onChange={(e) =>
-            onChange((p: any) => ({ ...p, gender: e.target.value, page: 1 }))
+            e.target.value
+              ? update({ gender: e.target.value })
+              : reset("gender")
           }
         >
           <option value="">All Genders</option>
@@ -84,21 +142,11 @@ export default function MemberFilters({ onChange, filters }: any) {
         {/* YEAR */}
         <select
           className="filter-input"
+          value={local.year ?? ""}
           onChange={(e) =>
-            onChange((p: any) => {
-              const value = e.target.value;
-              const next = { ...p, page: 1 };
-
-              if (value) {
-                next.year = Number(value);
-                delete next.month; // ✅ reset month properly
-              } else {
-                delete next.year;
-                delete next.month;
-              }
-
-              return next;
-            })
+            e.target.value
+              ? update({ year: Number(e.target.value), month: undefined })
+              : setLocal({ page: 1 })
           }
         >
           <option value="">All Years</option>
@@ -111,24 +159,15 @@ export default function MemberFilters({ onChange, filters }: any) {
 
         {/* MONTH */}
         <select
-          autoFocus={yearSelected}
-          // disabled={!yearSelected}
+          disabled={!yearSelected}
           className={`filter-input ${
-            !yearSelected ? "opacity-40 cursor-not-allowed" : "cursor-pointer"
+            !yearSelected ? "opacity-40 cursor-not-allowed" : ""
           }`}
+          value={local.month ?? ""}
           onChange={(e) =>
-            onChange((p: any) => {
-              const value = e.target.value;
-              const next = { ...p, page: 1 };
-
-              if (value) {
-                next.month = Number(value);
-              } else {
-                delete next.month; // ✅ CRITICAL FIX
-              }
-
-              return next;
-            })
+            e.target.value
+              ? update({ month: Number(e.target.value) })
+              : reset("month")
           }
         >
           <option value="">All Months</option>

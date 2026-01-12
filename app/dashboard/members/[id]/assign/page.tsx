@@ -53,16 +53,42 @@ export default function AssignPlanPage() {
       >
         {/* PLAN TYPE */}
         <Field label="Membership Plan">
-          <select
-            className="input-boxfitx"
-            value={form.planType}
-            onChange={(e) => setForm({ ...form, planType: e.target.value })}
-          >
-            <option value="monthly">Monthly</option>
-            <option value="quarterly">Quarterly</option>
-            <option value="half_yearly">Half Yearly</option>
-            <option value="annual">Annual</option>
-          </select>
+          <div className="relative">
+            <select
+              value={form.planType}
+              onChange={(e) => setForm({ ...form, planType: e.target.value })}
+              className="
+        w-full appearance-none
+        bg-black/70
+        border border-[#00FF6A]/40
+        rounded-lg
+        px-3 py-3 pr-10
+        text-white
+        focus:outline-none
+        focus:ring-2 focus:ring-[#00FF6A]/60
+        focus:border-[#00FF6A]
+        transition
+      "
+            >
+              <option value="monthly" className="bg-black text-white">
+                Monthly
+              </option>
+              <option value="quarterly" className="bg-black text-white">
+                Quarterly
+              </option>
+              <option value="half_yearly" className="bg-black text-white">
+                Half Yearly
+              </option>
+              <option value="annual" className="bg-black text-white">
+                Annual
+              </option>
+            </select>
+
+            {/* Custom arrow */}
+            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#00FF6A]">
+              ▼
+            </span>
+          </div>
         </Field>
 
         {/* START DATE */}
@@ -88,7 +114,18 @@ export default function AssignPlanPage() {
         {/* PAYMENT MODE */}
         <Field label="Payment Mode">
           <select
-            className="input-boxfitx"
+            className="
+        w-full appearance-none
+        bg-black/70
+        border border-[#00FF6A]/40
+        rounded-lg
+        px-3 py-3 pr-10
+        text-white
+        focus:outline-none
+        focus:ring-2 focus:ring-[#00FF6A]/60
+        focus:border-[#00FF6A]
+        transition
+      "
             value={form.paymentMode}
             onChange={(e) => setForm({ ...form, paymentMode: e.target.value })}
           >
