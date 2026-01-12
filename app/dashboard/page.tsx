@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
 import {
   Users,
@@ -12,51 +12,101 @@ import {
   Pencil,
   Trash2,
 } from "lucide-react";
-
 import { useRouter } from "next/navigation";
+
+type CachePayload = {
+  summary: any;
+  attendance: any[];
+  notices: any[];
+  trainers: any[];
+};
+
 export default function DashboardPage() {
-  const [summary, setSummary] = useState<any>(null);
-  const [attendance, setAttendance] = useState<any[]>([]);
-  const [notices, setNotices] = useState<any[]>([]);
-  const [trainers, setTrainers] = useState<any[]>([]);
   const router = useRouter();
-  const formatIST = (isoString?: string) => {
-    if (!isoString) return "—";
+  const abortRef = useRef<AbortController | null>(null);
 
-    return new Date(isoString).toLocaleTimeString("en-IN", {
-      timeZone: "Asia/Kolkata",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: true,
-    });
-  };
+  const [data, setData] = useState<CachePayload | null>(null);
 
+  /* ---------- TIME FORMAT ---------- */
+  const formatIST = (iso?: string) =>
+    iso
+      ? new Date(iso).toLocaleTimeString("en-IN", {
+          timeZone: "Asia/Kolkata",
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: true,
+        })
+      : "—";
+
+  /* ---------- FETCH DASHBOARD ---------- */
   useEffect(() => {
     const token = localStorage.getItem("token");
+    if (!token) return;
 
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/dashboard/summary`)
-      .then((r) => r.json())
-      .then((d) => setSummary(d.data));
+    const CACHE_KEY = "dashboard_cache";
 
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/attendance/today`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((r) => r.json())
-      .then((d) => setAttendance(d.records || []));
+    // Abort previous request
+    abortRef.current?.abort();
+    abortRef.current = new AbortController();
 
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/notices`)
-      .then((r) => r.json())
-      .then((d) => setNotices(d.data || []));
+    // 🚀 Load from cache instantly
+    const cached = sessionStorage.getItem(CACHE_KEY);
+    if (cached) {
+      setData(JSON.parse(cached));
+      return;
+    }
 
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/trainers`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((r) => r.json())
-      .then((d) => setTrainers(d.data || []));
+    const fetchAll = async () => {
+      try {
+        const [summaryRes, attendanceRes, noticeRes, trainerRes] =
+          await Promise.all([
+            fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/dashboard/summary`),
+            fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/attendance/today`, {
+              headers: { Authorization: `Bearer ${token}` },
+            }),
+            fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/notices`),
+            fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/trainers`, {
+              headers: { Authorization: `Bearer ${token}` },
+            }),
+          ]);
+
+        const [summary, attendance, notices, trainers] = await Promise.all([
+          summaryRes.json(),
+          attendanceRes.json(),
+          noticeRes.json(),
+          trainerRes.json(),
+        ]);
+
+        const payload: CachePayload = {
+          summary: summary.data,
+          attendance: attendance.records || [],
+          notices: notices.data || [],
+          trainers: trainers.data || [],
+        };
+
+        setData(payload);
+        sessionStorage.setItem(CACHE_KEY, JSON.stringify(payload));
+      } catch (err: any) {
+        if (err.name !== "AbortError") {
+          toast.error("Failed to load dashboard");
+        }
+      }
+    };
+
+    fetchAll();
+
+    return () => abortRef.current?.abort();
   }, []);
 
-  if (!summary) return null;
+  if (!data) {
+    return (
+      <div className="text-center text-gray-400 py-32">Loading dashboard…</div>
+    );
+  }
 
+  const { summary, attendance, notices, trainers } = data;
+
+  /* ---------- UI ---------- */
   return (
     <div className="space-y-12 text-white bg-[#050505] min-h-full">
       {/* HEADER */}
@@ -113,7 +163,7 @@ export default function DashboardPage() {
 
       {/* ATTENDANCE + NOTICE */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-        {/* TODAY ATTENDANCE */}
+        {/* ATTENDANCE */}
         <div className="xl:col-span-2 border border-[#00FF6A]/40 shadow-[0_0_60px_#00FF6A11]">
           <h3 className="p-4 text-sm tracking-widest text-[#00FF6A]">
             TODAY ATTENDANCE
@@ -160,18 +210,11 @@ export default function DashboardPage() {
                       <td className="p-3 font-medium">
                         {a.member?.fullName || "—"}
                       </td>
-
-                      <td className="p-3 text-gray-300">
-                        {formatIST(a.checkIn)}
-                      </td>
-
-                      <td className="p-3 text-gray-300">
-                        {formatIST(a.checkOut)}
-                      </td>
-
+                      <td className="p-3">{formatIST(a.checkIn)}</td>
+                      <td className="p-3">{formatIST(a.checkOut)}</td>
                       <td className="p-3">
                         <span
-                          className={`px-3 py-1 text-xs font-bold tracking-widest rounded ${badge}`}
+                          className={`px-3 py-1 text-xs font-bold rounded ${badge}`}
                         >
                           {status}
                         </span>
@@ -188,88 +231,52 @@ export default function DashboardPage() {
         <div className="border border-[#00FF6A]/40 shadow-[0_0_60px_#00FF6A11]">
           <h3
             onClick={() => router.push("/dashboard/notices/create")}
-            className="p-4 flex items-center gap-2 text-sm tracking-widest
-    text-[#00FF6A] cursor-pointer hover:bg-[#00FF6A]/10 transition"
+            className="p-4 flex items-center gap-2 text-sm tracking-widest text-[#00FF6A] cursor-pointer hover:bg-[#00FF6A]/10"
           >
             <Bell size={16} />
             NOTICE BOARD
-            <span className="ml-auto text-xs text-gray-400 tracking-widest">
-              + ADD
-            </span>
+            <span className="ml-auto text-xs text-gray-400">+ ADD</span>
           </h3>
 
           <div className="divide-y divide-[#00FF6A]/10">
-            {notices.map((n) => {
-              const badge =
-                n.priority === "high"
-                  ? "bg-red-500/20 text-red-400"
-                  : n.priority === "low"
-                  ? "bg-blue-500/20 text-blue-400"
-                  : "bg-yellow-500/20 text-yellow-400";
-
-              const deleteNotice = async () => {
-                const token = localStorage.getItem("token");
-                const t = toast.loading("Deleting notice...");
-
-                try {
-                  await fetch(
-                    `${process.env.NEXT_PUBLIC_API_URL}/api/notices/${n._id}`,
-                    {
-                      method: "DELETE",
-                      headers: { Authorization: `Bearer ${token}` },
-                    }
-                  );
-
-                  toast.success("Notice deleted", { id: t });
-                  setNotices((prev) => prev.filter((x) => x._id !== n._id));
-                } catch {
-                  toast.error("Delete failed", { id: t });
-                }
-              };
-
-              return (
-                <div key={n._id} className="p-4 hover:bg-[#00FF6A]/5">
-                  <div className="flex justify-between items-center">
-                    <p className="text-sm font-semibold">{n.title}</p>
-
-                    <div className="flex items-center gap-2">
-                      <span className={`px-2 py-1 text-xs rounded ${badge}`}>
-                        {n.priority.toUpperCase()}
-                      </span>
-
-                      {/* EDIT */}
-                      <button
-                        onClick={() =>
-                          router.push(`/dashboard/notices/${n._id}`)
-                        }
-                        className="text-blue-400 hover:text-blue-300"
-                      >
-                        <Pencil size={14} />
-                      </button>
-
-                      {/* DELETE */}
-                      <button
-                        onClick={deleteNotice}
-                        className="text-red-400 hover:text-red-300"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
+            {notices.map((n) => (
+              <div key={n._id} className="p-4 hover:bg-[#00FF6A]/5">
+                <div className="flex justify-between items-center">
+                  <p className="font-semibold">{n.title}</p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => router.push(`/dashboard/notices/${n._id}`)}
+                      className="text-blue-400"
+                    >
+                      <Pencil size={14} />
+                    </button>
+                    <button
+                      onClick={() =>
+                        setData((p) =>
+                          p
+                            ? {
+                                ...p,
+                                notices: p.notices.filter(
+                                  (x) => x._id !== n._id
+                                ),
+                              }
+                            : p
+                        )
+                      }
+                      className="text-red-400"
+                    >
+                      <Trash2 size={14} />
+                    </button>
                   </div>
-
-                  {n.description && (
-                    <p className="text-xs text-gray-400 mt-1">
-                      {n.description}
-                    </p>
-                  )}
                 </div>
-              );
-            })}
+                {n.description && (
+                  <p className="text-xs text-gray-400 mt-1">{n.description}</p>
+                )}
+              </div>
+            ))}
           </div>
         </div>
       </div>
-
-      {/* TRAINERS */}
       <div className="border border-[#00FF6A]/40 shadow-[0_0_60px_#00FF6A11]">
         <h3 className="p-4 text-sm tracking-widest text-[#00FF6A]">TRAINERS</h3>
 
@@ -311,17 +318,12 @@ export default function DashboardPage() {
   );
 }
 
-/* ---------- STAT CARD ---------- */
+/* ---------- STAT ---------- */
 
 function Stat({ icon, label, value }: any) {
   return (
-    <div
-      className="relative p-5 border border-[#00FF6A]/50
-      shadow-[0_0_50px_#00FF6A22]
-      hover:shadow-[0_0_80px_#00FF6A66]
-      transition"
-    >
-      <div className="flex items-center justify-between text-[#00FF6A]">
+    <div className="relative p-5 border border-[#00FF6A]/50 shadow-[0_0_50px_#00FF6A22]">
+      <div className="flex justify-between text-[#00FF6A]">
         {icon}
         <span className="text-3xl font-extrabold">{value}</span>
       </div>
