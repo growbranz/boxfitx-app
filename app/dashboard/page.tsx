@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
+/* ---------- TYPES ---------- */
 type CachePayload = {
   summary: any;
   attendance: any[];
@@ -21,11 +22,15 @@ type CachePayload = {
   trainers: any[];
 };
 
+const CACHE_KEY = "dashboard_cache";
+
+/* ---------- COMPONENT ---------- */
 export default function DashboardPage() {
   const router = useRouter();
   const abortRef = useRef<AbortController | null>(null);
 
   const [data, setData] = useState<CachePayload | null>(null);
+  const [loading, setLoading] = useState(true);
 
   /* ---------- TIME FORMAT ---------- */
   const formatIST = (iso?: string) =>
@@ -41,47 +46,63 @@ export default function DashboardPage() {
   /* ---------- FETCH DASHBOARD ---------- */
   useEffect(() => {
     const token = localStorage.getItem("token");
-    if (!token) return;
 
-    const CACHE_KEY = "dashboard_cache";
-
-    // Abort previous request
-    abortRef.current?.abort();
-    abortRef.current = new AbortController();
-
-    // 🚀 Load from cache instantly
-    const cached = sessionStorage.getItem(CACHE_KEY);
-    if (cached) {
-      setData(JSON.parse(cached));
+    // 🔐 Not logged in → redirect
+    if (!token) {
+      toast.error("Please login again");
+      router.replace("/login");
       return;
     }
 
+    abortRef.current?.abort();
+    abortRef.current = new AbortController();
+
+    // 🚀 Load cache instantly
+    const cached = sessionStorage.getItem(CACHE_KEY);
+    if (cached) {
+      setData(JSON.parse(cached));
+      setLoading(false);
+    }
+
+    const fetchJSON = async (url: string) => {
+      const res = await fetch(url, {
+        signal: abortRef.current?.signal,
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (res.status === 401) {
+        localStorage.removeItem("token");
+        router.replace("/login");
+        throw new Error("Unauthorized");
+      }
+
+      if (!res.ok) {
+        throw new Error(`Failed: ${url}`);
+      }
+
+      return res.json();
+    };
+
     const fetchAll = async () => {
       try {
-        const [summaryRes, attendanceRes, noticeRes, trainerRes] =
-          await Promise.all([
-            fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/dashboard/summary`),
-            fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/attendance/today`, {
-              headers: { Authorization: `Bearer ${token}` },
-            }),
-            fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/notices`),
-            fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/trainers`, {
-              headers: { Authorization: `Bearer ${token}` },
-            }),
-          ]);
+        const api = process.env.NEXT_PUBLIC_API_URL;
+        if (!api) throw new Error("API URL missing");
 
         const [summary, attendance, notices, trainers] = await Promise.all([
-          summaryRes.json(),
-          attendanceRes.json(),
-          noticeRes.json(),
-          trainerRes.json(),
+          fetchJSON(`${api}/api/dashboard/summary`),
+          fetchJSON(`${api}/api/attendance/today`),
+          fetchJSON(`${api}/api/notices`),
+          fetchJSON(`${api}/api/trainers`),
         ]);
 
         const payload: CachePayload = {
           summary: summary.data,
-          attendance: attendance.records || [],
-          notices: notices.data || [],
-          trainers: trainers.data || [],
+          attendance: attendance.records ?? [],
+          notices: notices.data ?? [],
+          trainers: trainers.data ?? [],
         };
 
         setData(payload);
@@ -89,18 +110,30 @@ export default function DashboardPage() {
       } catch (err: any) {
         if (err.name !== "AbortError") {
           toast.error("Failed to load dashboard");
+          console.error(err);
         }
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchAll();
 
     return () => abortRef.current?.abort();
-  }, []);
+  }, [router]);
+
+  /* ---------- STATES ---------- */
+  if (loading) {
+    return (
+      <div className="text-center text-gray-400 py-32">Loading dashboard…</div>
+    );
+  }
 
   if (!data) {
     return (
-      <div className="text-center text-gray-400 py-32">Loading dashboard…</div>
+      <div className="text-center text-red-400 py-32">
+        Failed to load dashboard
+      </div>
     );
   }
 
@@ -164,7 +197,7 @@ export default function DashboardPage() {
       {/* ATTENDANCE + NOTICE */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
         {/* ATTENDANCE */}
-        <div className="xl:col-span-2 border border-[#00FF6A]/40 shadow-[0_0_60px_#00FF6A11]">
+        <div className="xl:col-span-2 border border-[#00FF6A]/40">
           <h3 className="p-4 text-sm tracking-widest text-[#00FF6A]">
             TODAY ATTENDANCE
           </h3>
@@ -178,7 +211,6 @@ export default function DashboardPage() {
                 <th className="p-3">STATUS</th>
               </tr>
             </thead>
-
             <tbody>
               {attendance.length === 0 ? (
                 <tr>
@@ -192,23 +224,20 @@ export default function DashboardPage() {
                     a.checkIn && a.checkOut
                       ? "PRESENT"
                       : a.checkIn
-                      ? "INSIDE"
-                      : "ABSENT";
+                        ? "INSIDE"
+                        : "ABSENT";
 
                   const badge =
                     status === "PRESENT"
                       ? "bg-green-500/20 text-green-400"
                       : status === "INSIDE"
-                      ? "bg-yellow-500/20 text-yellow-400"
-                      : "bg-red-500/20 text-red-400";
+                        ? "bg-yellow-500/20 text-yellow-400"
+                        : "bg-red-500/20 text-red-400";
 
                   return (
-                    <tr
-                      key={i}
-                      className="border-t border-[#00FF6A]/10 hover:bg-[#00FF6A]/5"
-                    >
+                    <tr key={i} className="border-t border-[#00FF6A]/10">
                       <td className="p-3 font-medium">
-                        {a.member?.fullName || "—"}
+                        {a.member?.fullName ?? "—"}
                       </td>
                       <td className="p-3">{formatIST(a.checkIn)}</td>
                       <td className="p-3">{formatIST(a.checkOut)}</td>
@@ -228,10 +257,10 @@ export default function DashboardPage() {
         </div>
 
         {/* NOTICE BOARD */}
-        <div className="border border-[#00FF6A]/40 shadow-[0_0_60px_#00FF6A11]">
+        <div className="border border-[#00FF6A]/40">
           <h3
             onClick={() => router.push("/dashboard/notices/create")}
-            className="p-4 flex items-center gap-2 text-sm tracking-widest text-[#00FF6A] cursor-pointer hover:bg-[#00FF6A]/10"
+            className="p-4 flex items-center gap-2 text-sm tracking-widest text-[#00FF6A] cursor-pointer"
           >
             <Bell size={16} />
             NOTICE BOARD
@@ -240,13 +269,12 @@ export default function DashboardPage() {
 
           <div className="divide-y divide-[#00FF6A]/10">
             {notices.map((n) => (
-              <div key={n._id} className="p-4 hover:bg-[#00FF6A]/5">
+              <div key={n._id} className="p-4">
                 <div className="flex justify-between items-center">
                   <p className="font-semibold">{n.title}</p>
                   <div className="flex gap-2">
                     <button
                       onClick={() => router.push(`/dashboard/notices/${n._id}`)}
-                      className="text-blue-400"
                     >
                       <Pencil size={14} />
                     </button>
@@ -257,13 +285,12 @@ export default function DashboardPage() {
                             ? {
                                 ...p,
                                 notices: p.notices.filter(
-                                  (x) => x._id !== n._id
+                                  (x) => x._id !== n._id,
                                 ),
                               }
-                            : p
+                            : p,
                         )
                       }
-                      className="text-red-400"
                     >
                       <Trash2 size={14} />
                     </button>
@@ -277,9 +304,10 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
-      <div className="border border-[#00FF6A]/40 shadow-[0_0_60px_#00FF6A11]">
-        <h3 className="p-4 text-sm tracking-widest text-[#00FF6A]">TRAINERS</h3>
 
+      {/* TRAINERS */}
+      <div className="border border-[#00FF6A]/40">
+        <h3 className="p-4 text-sm tracking-widest text-[#00FF6A]">TRAINERS</h3>
         <table className="w-full text-sm">
           <thead className="bg-[#00FF6A]/10 text-[#00FF6A]">
             <tr>
@@ -288,19 +316,14 @@ export default function DashboardPage() {
               <th className="p-3">STATUS</th>
             </tr>
           </thead>
-
           <tbody>
             {trainers.map((t) => (
-              <tr
-                key={t._id}
-                className="border-t border-[#00FF6A]/10 hover:bg-[#00FF6A]/5"
-              >
+              <tr key={t._id} className="border-t border-[#00FF6A]/10">
                 <td className="p-3 font-medium">{t.fullName}</td>
                 <td className="p-3 text-gray-300">{t.speciality}</td>
                 <td className="p-3">
                   <span
-                    className={`px-3 py-1 text-xs font-bold tracking-widest rounded
-                    ${
+                    className={`px-3 py-1 text-xs font-bold rounded ${
                       t.status === "active"
                         ? "bg-green-500/20 text-green-400"
                         : "bg-red-500/20 text-red-400"
@@ -319,10 +342,9 @@ export default function DashboardPage() {
 }
 
 /* ---------- STAT ---------- */
-
 function Stat({ icon, label, value }: any) {
   return (
-    <div className="relative p-5 border border-[#00FF6A]/50 shadow-[0_0_50px_#00FF6A22]">
+    <div className="relative p-5 border border-[#00FF6A]/50">
       <div className="flex justify-between text-[#00FF6A]">
         {icon}
         <span className="text-3xl font-extrabold">{value}</span>
