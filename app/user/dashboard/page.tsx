@@ -15,7 +15,9 @@ const UserDashboard = () => {
 
   const [modal, setModal] = useState<null | "checkin" | "checkout">(null);
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = new Date().toLocaleDateString("en-CA", {
+    timeZone: "Asia/Kolkata",
+  });
   const todayRecord = records.find((r) => r.date === today);
 
   const canCheckIn = !todayRecord?.checkIn;
