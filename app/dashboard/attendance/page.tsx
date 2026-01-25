@@ -27,7 +27,7 @@ export default function AttendanceHistoryPage() {
       `${process.env.NEXT_PUBLIC_API_URL}/api/attendance/today`,
       {
         headers: { Authorization: `Bearer ${token}` },
-      }
+      },
     );
     const todayData = await todayRes.json();
     setRecords(todayData.records || []);
@@ -40,7 +40,7 @@ export default function AttendanceHistoryPage() {
       }&year=${now.getFullYear()}`,
       {
         headers: { Authorization: `Bearer ${token}` },
-      }
+      },
     );
     const monthData = await monthRes.json();
     setStats(monthData.stats || []);
@@ -50,6 +50,8 @@ export default function AttendanceHistoryPage() {
 
   useEffect(() => {
     fetchData();
+    const interval = setInterval(fetchData, 10000);
+    return () => clearInterval(interval);
   }, []);
 
   return (
